@@ -13,7 +13,6 @@ window.tokenMatch = function(text, query){
   const tokens = normalize(query).split(' ').filter(Boolean);
   return tokens.every(t => T.includes(t));
 }
-
 window.sanitize = function(html){
   if(!html) return html;
   html = html.replace(/<span[^>]*class="[^"]*hl[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1');

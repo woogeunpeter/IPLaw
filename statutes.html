@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>법조문 모드</title>
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <header class="topbar">
@@ -45,6 +45,11 @@
             <div id="starRow" class="stars editable" title="중요도">★★★★★</div>
             <button id="bmBtn" class="btn ghost" title="북마크">☆ 북마크</button>
             <a id="toQuiz" class="btn" href="./quiz.html">이 조문 퀴즈</a>
+            <div class="row gap">
+              <button id="markOStat" class="btn small">O</button>
+              <button id="markXStat" class="btn small">X</button>
+              <button id="markClearStat" class="btn small ghost">취소</button>
+            </div>
           </div>
         </div>
         <div id="bodyStat" class="body"></div>
@@ -62,7 +67,7 @@
     </section>
   </main>
 
-  <script src="./common.js?v=4"></script>
-  <script src="./statutes.js?v=4"></script>
+  <script src="./common.js?v=6"></script>
+  <script src="./statutes.js?v=6"></script>
 </body>
 </html>

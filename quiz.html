@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>빈칸 퀴즈 모드</title>
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <header class="topbar">
@@ -38,8 +38,9 @@
           <button id="nextQuiz" class="btn">다음</button>
         </div>
         <div class="row gap">
-          <button id="markCorrect" class="btn ghost">맞음</button>
-          <button id="markWrong" class="btn ghost">틀림</button>
+          <button id="markOQuiz" class="btn small">O</button>
+          <button id="markXQuiz" class="btn small">X</button>
+          <button id="markClearQuiz" class="btn small ghost">취소</button>
           <span id="stats" class="muted"></span>
         </div>
       </div>
@@ -54,7 +55,7 @@
     </section>
   </main>
 
-  <script src="./common.js?v=4"></script>
-  <script src="./quiz.js?v=4"></script>
+  <script src="./common.js?v=6"></script>
+  <script src="./quiz.js?v=6"></script>
 </body>
 </html>

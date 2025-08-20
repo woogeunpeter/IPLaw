@@ -11,6 +11,8 @@
     if(set.has(id)) set.delete(id); else set.add(id);
     storage.set(key('bookmarks', LAW), Array.from(set));
   }
+  function getResult(id){ return storage.get(key('result', LAW, id), null); } // 'O'|'X'|null
+  function setResult(id, v){ storage.set(key('result', LAW, id), v); }
 
   function buildTOC(){
     const el = $('#tocStat'); el.innerHTML='';
@@ -30,7 +32,7 @@
       const it = document.createElement('div'); it.className='toc-item';
       const s = getStars(a.id, a.stars||0);
       const bm = isBookmarked(a.id);
-      const st = storage.get(key('quizStats', LAW, a.id), {correct:0, wrong:0});
+      const r = getResult(a.id);
       it.innerHTML = `
         <div class="toc-title">
           <strong>${a.number}</strong>
@@ -38,7 +40,7 @@
         </div>
         <div class="row gap">
           <span class="stars">${'★'.repeat(s)}${'☆'.repeat(5-s)}</span>
-          <span class="badge">${st.correct}/${st.wrong}</span>
+          <span class="badge result ${r||''}">${r||''}</span>
           <span class="badge">${bm?'★':''}</span>
         </div>`;
       it.addEventListener('click', ()=> openAt(i));
@@ -75,11 +77,16 @@
     renderStarsEditable($('#starRow'), getStars(a.id, a.stars||0), (n)=>{
       setStars(a.id, n);
       buildTOC();
-      openAt(i); // rerender
+      openAt(i);
     });
     $('#bmBtn').textContent = isBookmarked(a.id) ? '★ 북마크 해제' : '☆ 북마크';
     $('#bmBtn').onclick = ()=>{ toggleBookmark(a.id); buildTOC(); openAt(i); };
     $('#toQuiz').href = `./quiz.html?id=${encodeURIComponent(a.id)}`;
+
+    // O/X marking
+    $('#markOStat').onclick = ()=>{ setResult(a.id, 'O'); buildTOC(); };
+    $('#markXStat').onclick = ()=>{ setResult(a.id, 'X'); buildTOC(); };
+    $('#markClearStat').onclick = ()=>{ setResult(a.id, null); buildTOC(); };
   }
 
   // nav
@@ -95,7 +102,8 @@
       const a = LIST[idx];
       storage.set(key('note', LAW, a.id), e.target.value);
       $('#noteStatus').textContent = '자동 저장됨';
-    }, 350);
+      buildTOC(); // update search (memo included)
+    }, 300);
   });
   $('#noteClear').addEventListener('click', ()=>{
     const a = LIST[idx];
@@ -103,11 +111,15 @@
     storage.set(key('note', LAW, a.id), '');
     $('#noteStatus').textContent = '비움';
     autosize($('#noteStat'));
-    buildTOC(); // note cleared -> affects search results
+    buildTOC();
   });
 
   LIST = await fetchLawJson('patent');
   LIST.forEach(a => a.text = sanitize(a.text));
+  // search listeners
+  $('#searchStat').addEventListener('input', buildTOC);
+  $('#onlyBookmarks').addEventListener('change', buildTOC);
+  $('#minStars').addEventListener('change', buildTOC);
   buildTOC();
   // open by ?id
   const pid = getParam('id');
