@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>법조문 모드 — Law PWA</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Law PWA">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="l">
+      <button id="homeBtn" class="btn icon" title="홈">🏠</button>
+      <div class="brand">법조문</div>
+    </div>
+    <div class="r">
+      <button id="installBtn" class="btn ghost" hidden>설치</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <aside class="sidebar">
+      <div class="side-header">
+        <select id="lawSelect" class="input">
+          <option value="patent" selected>특허법(총칙)</option>
+          <option value="trademark" disabled>상표법(추가 예정)</option>
+          <option value="design" disabled>디자인보호법(추가 예정)</option>
+        </select>
+        <input id="searchInput" class="input" placeholder="번호·제목·내용 검색">
+        <div class="filters">
+          <label class="chip"><input type="checkbox" id="onlyBookmarks"> 북마크</label>
+          <label class="chip">별점≥
+            <select id="minStars" class="input input-compact">
+              <option value="0" selected>0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="toc" class="toc"></div>
+    </aside>
+
+    <section class="content">
+      <div class="empty">
+        좌측 목록에서 조문을 선택하거나 검색하세요.
+      </div>
+      <article id="viewer" class="viewer" hidden>
+        <div class="article-head">
+          <div class="title">
+            <h1 id="aTitle">제0조 제목</h1>
+            <div class="meta">
+              <span class="badge" id="aId">ID</span>
+              <span class="stars" id="aStars">☆☆☆☆☆</span>
+            </div>
+          </div>
+          <div class="actions">
+            <label class="starset">중요도
+              <select id="starSelect" class="input input-compact">
+                <option>0</option><option>1</option><option>2</option>
+                <option>3</option><option>4</option><option>5</option>
+              </select>
+            </label>
+            <button id="bmBtn" class="btn ghost">★ 북마크</button>
+          </div>
+        </div>
+        <div id="aBody" class="body"></div>
+        <div class="note-area">
+          <textarea id="noteInput" class="textarea" placeholder="메모를 입력하세요…"></textarea>
+          <div class="note-row">
+            <span id="noteStatus" class="muted">자동 저장됨</span>
+            <div class="spacer"></div>
+            <button id="openQuiz" class="btn ghost">이 조문으로 빈칸 퀴즈</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>오프라인 · 로컬 저장(메모/별/북마크) · iPhone/iPad 설치 지원</small>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('installBtn');
+      btn.hidden = false;
+      btn.onclick = async ()=>{ btn.hidden = true; await deferredPrompt.prompt(); deferredPrompt = null; };
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+    }
+  </script>
+</body>
+</html>
