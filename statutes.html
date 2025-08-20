@@ -4,12 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>법조문 모드</title>
-  <link rel="stylesheet" href="./styles.css?v=1">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
   <header class="topbar">
     <a href="./index.html" class="btn ghost">← 홈</a>
     <div class="brand">⚖️ 법조문 모드</div>
+    <div class="spacer"></div>
+    <label class="chip">별점≥
+      <select id="minStars" class="input input-compact">
+        <option value="0" selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+      </select>
+    </label>
+    <label class="chip"><input type="checkbox" id="onlyBookmarks"> 북마크</label>
   </header>
 
   <main class="wrap screen">
@@ -31,7 +38,26 @@
         </div>
       </div>
       <article id="viewerStat" class="viewer" hidden>
-        <h1 id="titleStat">제0조 제목</h1>
+        <div class="article-head">
+          <div class="title">
+            <h1 id="titleStat">제0조 제목</h1>
+            <div class="meta">
+              <span class="badge" id="idStat">ID</span>
+              <span class="stars" id="starsStat">☆☆☆☆☆</span>
+              <span class="badge" id="quizBadge">0/0</span>
+              <span class="badge" id="bmBadge"> </span>
+            </div>
+          </div>
+          <div class="actions">
+            <label class="starset">중요도
+              <select id="starSelect" class="input input-compact">
+                <option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+              </select>
+            </label>
+            <button id="bmBtn" class="btn ghost">★ 북마크</button>
+            <a id="toQuiz" class="btn" href="./quiz.html">이 조문 퀴즈</a>
+          </div>
+        </div>
         <div id="bodyStat" class="body"></div>
         <div class="note-area">
           <textarea id="noteStat" class="textarea" placeholder="메모를 입력하세요…"></textarea>
@@ -44,7 +70,7 @@
     </section>
   </main>
 
-  <script src="./common.js?v=1"></script>
-  <script src="./statutes.js?v=1"></script>
+  <script type="module" src="./common.js?v=2"></script>
+  <script type="module" src="./statutes.js?v=2"></script>
 </body>
 </html>

@@ -4,12 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>빈칸 퀴즈 모드</title>
-  <link rel="stylesheet" href="./styles.css?v=1">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
   <header class="topbar">
     <a href="./index.html" class="btn ghost">← 홈</a>
     <div class="brand">🧠 빈칸 퀴즈 모드</div>
+    <div class="spacer"></div>
+    <label class="chip">데일리 N
+      <input type="number" id="dailyN" class="input input-compact" min="1" value="10" style="width:80px">
+    </label>
+    <button id="startDaily" class="btn">데일리 시작</button>
   </header>
 
   <main class="wrap screen">
@@ -43,7 +48,7 @@
     </section>
   </main>
 
-  <script src="./common.js?v=1"></script>
-  <script src="./quiz.js?v=1"></script>
+  <script type="module" src="./common.js?v=2"></script>
+  <script type="module" src="./quiz.js?v=2"></script>
 </body>
 </html>
