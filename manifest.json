@@ -1,6 +1,6 @@
 {
-  "name": "법조문 PWA",
-  "short_name": "법조문",
+  "name": "IPLaw",
+  "short_name": "IPLaw",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0b1020",

@@ -1,20 +1,13 @@
-/* Auto-refresh Service Worker for IPLaw */
+/* Auto-refresh Service Worker */
 const CACHE_STATIC = 'iplaw-static-v1';
 const CORE = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './','./index.html','./styles.css','./app.js','./manifest.json',
+  './icons/icon-192.png','./icons/icon-512.png'
 ];
-
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_STATIC).then((cache) => cache.addAll(CORE)));
   self.skipWaiting();
 });
-
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -22,17 +15,11 @@ self.addEventListener('activate', (event) => {
     await self.clients.claim();
   })());
 });
-
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
-
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
-  // Network-first for data JSON so updates appear immediately
   if (url.pathname.includes('/data/')) {
     event.respondWith((async () => {
       try {
@@ -48,8 +35,6 @@ self.addEventListener('fetch', (event) => {
     })());
     return;
   }
-
-  // stale-while-revalidate for static assets
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
     const fetchPromise = fetch(event.request).then((networkResponse) => {
