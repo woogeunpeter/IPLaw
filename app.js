@@ -1,15 +1,26 @@
-// === Rescue Pack app.js ===
-// Defensive utilities
-const $ = (s, r=document) => r.querySelector(s);
-const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
-const storage = {
-  get: (k, v=null) => JSON.parse(localStorage.getItem(k) ?? JSON.stringify(v)),
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+// Navigation: home <-> statutes / quiz
+const screens = {
+  home: document.getElementById('screen-home'),
+  statutes: document.getElementById('screen-statutes'),
+  quiz: document.getElementById('screen-quiz'),
 };
-const key = (type, law, id='') => `${type}:${law}${id?':'+id:''}`;
-const starsStr = n => '★'.repeat(n||0) + '☆'.repeat(Math.max(0, 5-(n||0)));
+const backBtn = document.getElementById('backBtn');
+function show(screen){
+  Object.values(screens).forEach(s=>s.hidden=true);
+  screens[screen].hidden=false;
+  backBtn.hidden = (screen === 'home');
+  localStorage.setItem('lastScreen', screen);
+}
+document.getElementById('goStatutes').addEventListener('click', ()=> show('statutes'));
+document.getElementById('goQuiz').addEventListener('click', ()=> show('quiz'));
+backBtn.addEventListener('click', ()=> show('home'));
+show(localStorage.getItem('lastScreen') || 'home');
 
-// Strip any highlight spans; keep bold only
+// Helpers
+const $ = (s, r=document) => r.querySelector(s);
+const storage = { get:(k,v=null)=>JSON.parse(localStorage.getItem(k)??JSON.stringify(v)), set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)) };
+const key = (type, law, id='') => `${type}:${law}${id?':'+id:''}`;
+
 function sanitize(html){
   if(!html) return html;
   html = html.replace(/<span[^>]*class="[^"]*hl[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1');
@@ -17,7 +28,6 @@ function sanitize(html){
   return html;
 }
 
-// Cache-busting fetch (no SW dependency)
 async function fetchLawJson(law){
   const ts = Date.now();
   const res = await fetch(`./data/${law}.json?ts=${ts}`, { cache: 'no-store' });
@@ -25,185 +35,126 @@ async function fetchLawJson(law){
   return await res.json();
 }
 
-// ===== Shared State =====
+// ===== Shared state
 let LAW = 'patent';
-let LAW_DATA = [];
-let currentId = null;
+let LIST = []; // array of {id, number, title, text}
+let idxStat = -1;
+let idxQuiz = -1;
 
-// ===== Statutes (view-only, bold kept) =====
-async function loadLaw(law='patent'){
-  LAW = law;
-  try{
-    LAW_DATA = await fetchLawJson(law);
-    LAW_DATA.forEach(a => a.text = sanitize(a.text || ''));
-  }catch(e){
-    console.error(e);
-    LAW_DATA = [];
-  }
-  buildTOC();
-  if (LAW_DATA.length) openArticle(LAW_DATA[0].id);
+// Build left lists
+function buildTOCStat(){
+  const el = document.getElementById('tocStat'); el.innerHTML='';
+  const q = document.getElementById('searchStat').value.trim();
+  LIST.filter(a => !q || (a.number + ' ' + a.title + ' ' + a.text.replace(/<[^>]+>/g,'')).includes(q))
+      .forEach((a,i)=>{
+        const it = document.createElement('div'); it.className='toc-item';
+        it.innerHTML = `<div><strong>${a.number}</strong><div class="muted" style="font-size:12px">${a.title}</div></div>`;
+        it.addEventListener('click', ()=> openStat(i));
+        el.appendChild(it);
+      });
 }
 
-function buildTOC(){
-  const toc = $('#toc');
-  if(!toc) return;
-  const q = ($('#searchInput')||{value:''}).value?.trim() || '';
-  const onlyBM = ($('#onlyBookmarks')||{checked:false}).checked;
-  const minStars = parseInt(($('#minStars')||{value:'0'}).value||'0',10);
-  const bms = new Set(storage.get(key('bookmarks', LAW), []));
-  toc.innerHTML = '';
-
-  LAW_DATA.filter(a => {
-    const stars = storage.get(key('stars', LAW, a.id), a.stars||0);
-    const plain = (a.number + ' ' + a.title + ' ' + (a.text||'').replace(/<[^>]+>/g,''));
-    const match = !q || plain.includes(q);
-    const starOK = stars >= minStars;
-    const bmOK = !onlyBM || bms.has(a.id);
-    return match && starOK && bmOK;
-  }).forEach(a => {
-    const item = document.createElement('div');
-    item.className = 'toc-item';
-    const stars = storage.get(key('stars', LAW, a.id), a.stars||0);
-    const isBM = bms.has(a.id);
-    const st = storage.get(key('quizStats', LAW, a.id), {correct:0, wrong:0});
-    item.innerHTML = `
-      <div class="toc-title">
-        <strong>${a.number}</strong>
-        <small>${a.title}</small>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="stars">${starsStr(stars)}</span>
-        <span class="badge">${st.correct}/${st.wrong}</span>
-        <span class="badge">${isBM?'★':''}</span>
-      </div>`;
-    item.addEventListener('click', ()=> openArticle(a.id));
-    toc.appendChild(item);
-  });
+function buildTOCQuiz(){
+  const el = document.getElementById('tocQuiz'); el.innerHTML='';
+  const q = document.getElementById('searchQuiz').value.trim();
+  LIST.filter(a => !q || (a.number + ' ' + a.title + ' ' + a.text.replace(/<[^>]+>/g,'')).includes(q))
+      .forEach((a,i)=>{
+        const it = document.createElement('div'); it.className='toc-item';
+        it.innerHTML = `<div><strong>${a.number}</strong><div class="muted" style="font-size:12px">${a.title}</div></div>`;
+        it.addEventListener('click', ()=> openQuiz(i));
+        el.appendChild(it);
+      });
 }
 
-function openArticle(id){
-  currentId = id;
-  const a = LAW_DATA.find(x=>x.id===id);
-  if(!a) return;
-  if ($('.empty')) $('.empty').hidden = true;
-  if ($('#viewer')) $('#viewer').hidden = false;
-
-  const stars = storage.get(key('stars', LAW, id), a.stars||0);
-  const bms = new Set(storage.get(key('bookmarks', LAW), []));
-  const st = storage.get(key('quizStats', LAW, id), {correct:0, wrong:0});
-
-  if($('#aTitle')) $('#aTitle').textContent = `${a.number} ${a.title}`;
-  if($('#aId')) $('#aId').textContent = id;
-  if($('#aStars')) $('#aStars').textContent = starsStr(stars);
-  if($('#aQuizStats')) $('#aQuizStats').textContent = `${st.correct}/${st.wrong}`;
-  if($('#starSelect')) $('#starSelect').value = String(stars);
-  if($('#bmBtn')) $('#bmBtn').textContent = bms.has(id) ? '★ 북마크 해제' : '★ 북마크';
-  if($('#aBody')) $('#aBody').innerHTML = sanitize(a.text || '');
-  if($('#noteInput')) $('#noteInput').value = storage.get(key('note', LAW, id), '');
-  if($('#noteStatus')) $('#noteStatus').textContent = '자동 저장됨';
-
-  buildTOC();
+// ===== Statutes (ONLY statutes)
+function openStat(i){
+  idxStat = i;
+  const a = LIST[i];
+  document.getElementById('emptyStat').hidden = true;
+  document.getElementById('viewerStat').hidden = false;
+  document.getElementById('titleStat').textContent = `${a.number} ${a.title}`;
+  document.getElementById('bodyStat').innerHTML = sanitize(a.text);
+  // load memo
+  document.getElementById('noteStat').value = storage.get(key('note', LAW, a.id), '');
+  document.getElementById('noteStatus').textContent = '자동 저장됨';
 }
 
-// Wiring (defensive)
-on($('#lawSelect'), 'change', e => loadLaw(e.target.value));
-on($('#searchInput'), 'input', () => buildTOC());
-on($('#onlyBookmarks'), 'change', () => buildTOC());
-on($('#minStars'), 'change', () => buildTOC());
-on($('#starSelect'), 'change', e => {
-  const v = parseInt(e.target.value,10)||0;
-  storage.set(key('stars', LAW, currentId), v);
-  if($('#aStars')) $('#aStars').textContent = starsStr(v);
-  buildTOC();
+document.getElementById('prevStat').addEventListener('click', ()=>{
+  if(idxStat<=0) return;
+  openStat(idxStat-1);
 });
-on($('#bmBtn'), 'click', () => {
-  const arr = new Set(storage.get(key('bookmarks', LAW), []));
-  if(arr.has(currentId)) arr.delete(currentId); else arr.add(currentId);
-  storage.set(key('bookmarks', LAW), Array.from(arr));
-  if($('#bmBtn')) $('#bmBtn').textContent = arr.has(currentId) ? '★ 북마크 해제' : '★ 북마크';
-  buildTOC();
+document.getElementById('nextStat').addEventListener('click', ()=>{
+  if(idxStat<LIST.length-1) openStat(idxStat+1);
 });
-let noteTimer = null;
-on($('#noteInput'), 'input', e => {
-  if($('#noteStatus')) $('#noteStatus').textContent = '저장 중…';
+
+let noteTimer=null;
+document.getElementById('noteStat').addEventListener('input', (e)=>{
+  document.getElementById('noteStatus').textContent = '저장 중…';
   clearTimeout(noteTimer);
   noteTimer = setTimeout(()=>{
-    storage.set(key('note', LAW, currentId), e.target.value);
-    if($('#noteStatus')) $('#noteStatus').textContent = '자동 저장됨';
+    const a = LIST[idxStat];
+    storage.set(key('note', LAW, a.id), e.target.value);
+    document.getElementById('noteStatus').textContent = '자동 저장됨';
   }, 400);
 });
-on($('#toQuiz'), 'click', () => {
-  // if there is a tab/canvas for cloze, try to show same-article quiz
-  quizShow(currentId);
-});
 
-// ===== Cloze (bold segment -> single blank; per-blank reveal; record) =====
-let QUIZ_LAW = 'patent';
-let LAW_DATA_QUIZ = [];
-function statsKey(id){ return key('quizStats', QUIZ_LAW, id); }
+// ===== Quiz (ONLY blanks)
+// stats
+function statsKey(id){ return key('quizStats', LAW, id); }
 function getStats(id){ return storage.get(statsKey(id), {correct:0, wrong:0}); }
-function setStats(id, s){ storage.set(statsKey(id), s); }
+function setStats(id,s){ storage.set(statsKey(id), s); }
 
 function toClozeHTML(html){
-  html = sanitize(html || '');
+  html = sanitize(html);
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
-  // Replace each contiguous <b>...</b> with a single blank button
   wrap.querySelectorAll('b').forEach(bEl => {
-    const ans = bEl.textContent;
+    const ans = bEl.textContent; // contiguous bold segment as one blank
     const btn = document.createElement('button');
-    btn.className = 'btn ghost cloze-blank';
-    btn.dataset.answer = ans;
+    btn.className = 'btn ghost';
     btn.textContent = '____';
-    btn.addEventListener('click', () => { btn.textContent = ans; });
+    btn.addEventListener('click', ()=>{ btn.textContent = ans; });
     bEl.replaceWith(btn);
   });
   return wrap.innerHTML;
 }
 
-function quizShow(id){
-  const a = LAW_DATA_QUIZ.find(x=>x.id===id);
-  if(!a) return;
-  const html = toClozeHTML(a.text);
-  if($('#quizView')) $('#quizView').innerHTML = `<h2>${a.number} ${a.title}</h2><div class="meta">${a.id}</div><div class="body">${html}</div>`;
-  const st = getStats(id);
-  if($('#stats')) $('#stats').textContent = `누적: ${st.correct}/${st.wrong}`;
-  on($('#markCorrect'), 'click', ()=>{
-    const s = getStats(id); s.correct++; setStats(id,s);
-    if($('#stats')) $('#stats').textContent = `누적: ${s.correct}/${s.wrong}`;
-    // also reflect into statutes badge next time it opens
-  });
-  on($('#markWrong'), 'click', ()=>{
-    const s = getStats(id); s.wrong++; setStats(id,s);
-    if($('#stats')) $('#stats').textContent = `누적: ${s.correct}/${s.wrong}`;
-  });
+function renderQuiz(i){
+  idxQuiz = i;
+  const a = LIST[i];
+  document.getElementById('emptyQuiz').hidden = true;
+  document.getElementById('viewerQuiz').hidden = false;
+  document.getElementById('titleQuiz').textContent = `${a.number} ${a.title}`;
+  document.getElementById('bodyQuiz').innerHTML = toClozeHTML(a.text);
+  const st = getStats(a.id);
+  document.getElementById('stats').textContent = `누적: ${st.correct}/${st.wrong}`;
+  document.getElementById('markCorrect').onclick = ()=>{
+    const s = getStats(a.id); s.correct++; setStats(a.id,s);
+    document.getElementById('stats').textContent = `누적: ${s.correct}/${s.wrong}`;
+  };
+  document.getElementById('markWrong').onclick = ()=>{
+    const s = getStats(a.id); s.wrong++; setStats(a.id,s);
+    document.getElementById('stats').textContent = `누적: ${s.correct}/${s.wrong}`;
+  };
 }
 
-async function loadLawQuiz(law='patent'){
-  QUIZ_LAW = law;
-  try{
-    LAW_DATA_QUIZ = await fetchLawJson(law);
-    LAW_DATA_QUIZ.forEach(a => a.text = sanitize(a.text || ''));
-  }catch(e){
-    console.error(e);
-    LAW_DATA_QUIZ = [];
-  }
-  if(LAW_DATA_QUIZ.length) quizShow(LAW_DATA_QUIZ[0].id);
+function openQuiz(i){ renderQuiz(i); }
+
+document.getElementById('prevQuiz').addEventListener('click', ()=>{
+  if(idxQuiz<=0) return;
+  renderQuiz(idxQuiz-1);
+});
+document.getElementById('nextQuiz').addEventListener('click', ()=>{
+  if(idxQuiz<LIST.length-1) renderQuiz(idxQuiz+1);
+});
+
+// ===== Load data and init lists
+async function init(){
+  LIST = await fetchLawJson('patent');
+  LIST.forEach(a => a.text = sanitize(a.text));
+  buildTOCStat();
+  buildTOCQuiz();
 }
-
-// Optional controls (feature-detected)
-on($('#startDaily'), 'click', ()=>{
-  const n = Math.max(1, parseInt(($('#dailyCount')||{value:'10'}).value||'10',10));
-  const queue = [...LAW_DATA_QUIZ].sort(()=>Math.random()-0.5).slice(0, n).map(x=>x.id);
-  if(queue.length) quizShow(queue[0]);
-});
-on($('#gotoArticleQuiz'), 'click', ()=>{
-  const q = ($('#searchQuiz')||{value:''}).value.trim();
-  const found = LAW_DATA_QUIZ.find(a => (a.number + ' ' + a.title + ' ' + (a.text||'').replace(/<[^>]+>/g,'')).includes(q));
-  if(found) quizShow(found.id); else alert('검색 결과가 없습니다');
-});
-on($('#lawSelectQuiz'), 'change', e => loadLawQuiz(e.target.value));
-
-// Init
-loadLaw(LAW);
-loadLawQuiz(QUIZ_LAW);
+document.getElementById('searchStat').addEventListener('input', buildTOCStat);
+document.getElementById('searchQuiz').addEventListener('input', buildTOCQuiz);
+init();
