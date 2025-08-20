@@ -10,11 +10,6 @@
   <header class="topbar">
     <a href="./index.html" class="btn ghost">← 홈</a>
     <div class="brand">🧠 빈칸 퀴즈 모드</div>
-    <div class="spacer"></div>
-    <label class="chip">데일리 N
-      <input type="number" id="dailyN" class="input input-compact" min="1" value="10" style="width:80px">
-    </label>
-    <button id="startDaily" class="btn">데일리 시작</button>
   </header>
 
   <main class="wrap screen">
@@ -24,6 +19,14 @@
           <option value="patent" selected>특허법(총칙)</option>
         </select>
         <input id="searchQuiz" class="input" placeholder="번호·제목·내용 검색">
+        <div class="row gap" style="margin-top:6px">
+          <label class="row gap" style="align-items:center">
+            <span>데일리 N개</span>
+            <input id="dailyCount" class="input" type="number" min="1" value="10" style="width:90px">
+          </label>
+          <button id="startDaily" class="btn">데일리 시작</button>
+          <span id="dailyInfo" class="muted"></span>
+        </div>
       </div>
       <div id="tocQuiz" class="toc"></div>
     </aside>
@@ -48,7 +51,7 @@
     </section>
   </main>
 
-  <script type="module" src="./common.js?v=2"></script>
-  <script type="module" src="./quiz.js?v=2"></script>
+  <script src="./common.js?v=2"></script>
+  <script src="./quiz.js?v=2"></script>
 </body>
 </html>
