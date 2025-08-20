@@ -1,4 +1,4 @@
-// Tabs
+// Tabs (separated screens)
 const tabs = document.querySelectorAll('.tab');
 const screens = {
   statutes: document.getElementById('screen-statutes'),
@@ -45,7 +45,7 @@ const starsStr = n => '★'.repeat(n||0) + '☆'.repeat(Math.max(0, 5-(n||0)));
 
 function sanitize(html){
   if(!html) return html;
-  // Strip any highlight spans (class contains 'hl' OR inline background style)
+  // Strip highlight spans (class contains 'hl' OR inline background style)
   html = html.replace(/<span[^>]*class="[^"]*hl[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1');
   html = html.replace(/<span[^>]*style="[^"]*background[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, '$1');
   return html;
@@ -59,7 +59,7 @@ async function fetchLawJson(law){
   return await res.json();
 }
 
-// ====== Statutes Mode ======
+// ====== Statutes Mode (ONLY statutes) ======
 let LAW = 'patent';
 let LAW_DATA = [];
 let currentId = null;
@@ -68,7 +68,6 @@ async function loadLaw(law){
   LAW = law;
   try{
     LAW_DATA = await fetchLawJson(law);
-    // sanitize texts
     LAW_DATA.forEach(a => a.text = sanitize(a.text));
   }catch(err){
     alert('데이터 불러오기 오류: ' + err.message);
@@ -128,7 +127,7 @@ function openArticle(id){
   $('#starSelect').value = String(stars);
   $('#bmBtn').textContent = bms.has(id) ? '★ 북마크 해제' : '★ 북마크';
 
-  // Render body (bold only, highlight already sanitized)
+  // Render body (bold kept, highlight sanitized)
   $('#aBody').innerHTML = sanitize(a.text);
 
   // Notes
@@ -169,39 +168,29 @@ document.getElementById('toQuiz').addEventListener('click', () => {
   quizShow(currentId);
 });
 
-// ====== Cloze Quiz Mode ======
+// ====== Cloze Quiz Mode (ONLY blanks; bold segments as single chunk) ======
 let QUIZ_LAW = 'patent';
 let LAW_DATA_QUIZ = [];
-let quizQueue = [];
-let quizIndex = 0;
+
+function statsKey(id){ return key('quizStats', QUIZ_LAW, id); }
+function getStats(id){ return storage.get(statsKey(id), {correct:0, wrong:0}); }
+function setStats(id, s){ storage.set(statsKey(id), s); }
 
 function toClozeHTML(html){
-  // 1) sanitize highlights
   html = sanitize(html);
-  // 2) replace <b>…</b> with buttons
+  // Replace EACH contiguous <b>...</b> with a blank button (single chunk, includes spaces)
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
   wrap.querySelectorAll('b').forEach(bEl => {
-    const ans = bEl.textContent;
+    const ans = bEl.textContent; // whole segment
     const btn = document.createElement('button');
-    btn.className = 'btn ghost';
+    btn.className = 'btn ghost cloze-blank';
     btn.dataset.answer = ans;
     btn.textContent = '____';
-    btn.addEventListener('click', ()=>{ btn.textContent = ans; });
+    btn.addEventListener('click', () => { btn.textContent = ans; });
     bEl.replaceWith(btn);
   });
   return wrap.innerHTML;
-}
-
-function getStatsKey(id){ return key('stats', QUIZ_LAW, id); }
-function getStats(id){ return JSON.parse(localStorage.getItem(getStatsKey(id)) || '{"correct":0,"wrong":0}'); }
-function setStats(id, s){ localStorage.setItem(getStatsKey(id), JSON.stringify(s)); }
-
-async function loadLawQuiz(law){
-  QUIZ_LAW = law;
-  LAW_DATA_QUIZ = await fetchLawJson(law);
-  LAW_DATA_QUIZ.forEach(a => a.text = sanitize(a.text));
-  if (LAW_DATA_QUIZ.length) quizShow(LAW_DATA_QUIZ[0].id);
 }
 
 function quizShow(id){
@@ -211,36 +200,31 @@ function quizShow(id){
   document.getElementById('quizView').innerHTML =
     `<h2>${a.number} ${a.title}</h2><div class="meta">${a.id}</div><div class="body">${html}</div>`;
   const st = getStats(id);
-  document.getElementById('stats').textContent = `누적: ${st.correct}✓ / ${st.wrong}✗`;
-  document.getElementById('markCorrect').dataset.id = id;
-  document.getElementById('markWrong').dataset.id = id;
-  document.getElementById('revealBtn').onclick = ()=>{
-    document.querySelectorAll('#quizView button.btn.ghost').forEach(btn=> btn.textContent = btn.dataset.answer);
-  };
+  document.getElementById('stats').textContent = `누적: ${st.correct}/${st.wrong}`;
+  document.getElementById('markCorrect').onclick = ()=>{ const s=getStats(id); s.correct++; setStats(id,s); document.getElementById('stats').textContent=`누적: ${s.correct}/${s.wrong}`; };
+  document.getElementById('markWrong').onclick = ()=>{ const s=getStats(id); s.wrong++; setStats(id,s); document.getElementById('stats').textContent=`누적: ${s.correct}/${s.wrong}`; };
 }
 
-document.getElementById('lawSelectQuiz').addEventListener('change', e => loadLawQuiz(e.target.value));
-document.getElementById('markCorrect').addEventListener('click', e=>{
-  const id = e.currentTarget.dataset.id;
-  const st = getStats(id); st.correct += 1; setStats(id, st);
-  document.getElementById('stats').textContent = `누적: ${st.correct}✓ / ${st.wrong}✗`;
-});
-document.getElementById('markWrong').addEventListener('click', e=>{
-  const id = e.currentTarget.dataset.id;
-  const st = getStats(id); st.wrong += 1; setStats(id, st);
-  document.getElementById('stats').textContent = `누적: ${st.correct}✓ / ${st.wrong}✗`;
-});
+async function loadLawQuiz(law='patent'){
+  QUIZ_LAW = law;
+  LAW_DATA_QUIZ = await fetchLawJson(law);
+  LAW_DATA_QUIZ.forEach(a => a.text = sanitize(a.text));
+  if (LAW_DATA_QUIZ.length) quizShow(LAW_DATA_QUIZ[0].id);
+}
+
+// Daily N
 document.getElementById('startDaily').addEventListener('click', ()=>{
   const n = Math.max(1, parseInt(document.getElementById('dailyCount').value||'10',10));
-  quizQueue = [...LAW_DATA_QUIZ].sort(()=>Math.random()-0.5).slice(0, n).map(x=>x.id);
-  quizIndex = 0;
-  quizShow(quizQueue[quizIndex]);
+  const queue = [...LAW_DATA_QUIZ].sort(()=>Math.random()-0.5).slice(0,n).map(x=>x.id);
+  // iterate through queue by reusing quizShow; simple next on correct/wrong could be added later
+  if (queue.length){ quizShow(queue[0]); }
 });
 document.getElementById('gotoArticleQuiz').addEventListener('click', ()=>{
   const q = document.getElementById('searchQuiz').value.trim();
   const found = LAW_DATA_QUIZ.find(a => (a.number + ' ' + a.title + ' ' + a.text.replace(/<[^>]+>/g,'')).includes(q));
   if(found) quizShow(found.id); else alert('검색 결과가 없습니다');
 });
+document.getElementById('lawSelectQuiz').addEventListener('change', e => loadLawQuiz(e.target.value));
 
 // Init
 loadLaw(LAW);
