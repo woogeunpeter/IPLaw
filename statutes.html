@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>법조문 모드</title>
+  <link rel="stylesheet" href="./styles.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <a href="./index.html" class="btn ghost">← 홈</a>
+    <div class="brand">⚖️ 법조문 모드</div>
+  </header>
+
+  <main class="wrap screen">
+    <aside class="sidebar">
+      <div class="side-header">
+        <select id="lawSelectStat" class="input">
+          <option value="patent" selected>특허법(총칙)</option>
+        </select>
+        <input id="searchStat" class="input" placeholder="번호·제목·내용 검색">
+      </div>
+      <div id="tocStat" class="toc"></div>
+    </aside>
+
+    <section class="content">
+      <div class="content-header">
+        <div class="row gap">
+          <button id="prevStat" class="btn ghost">이전</button>
+          <button id="nextStat" class="btn">다음</button>
+        </div>
+      </div>
+      <article id="viewerStat" class="viewer" hidden>
+        <h1 id="titleStat">제0조 제목</h1>
+        <div id="bodyStat" class="body"></div>
+        <div class="note-area">
+          <textarea id="noteStat" class="textarea" placeholder="메모를 입력하세요…"></textarea>
+          <div class="note-row">
+            <span id="noteStatus" class="muted">자동 저장됨</span>
+          </div>
+        </div>
+      </article>
+      <div id="emptyStat" class="empty">좌측에서 조문을 선택하세요.</div>
+    </section>
+  </main>
+
+  <script src="./common.js?v=1"></script>
+  <script src="./statutes.js?v=1"></script>
+</body>
+</html>

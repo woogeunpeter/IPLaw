@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>빈칸 퀴즈 모드</title>
+  <link rel="stylesheet" href="./styles.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <a href="./index.html" class="btn ghost">← 홈</a>
+    <div class="brand">🧠 빈칸 퀴즈 모드</div>
+  </header>
+
+  <main class="wrap screen">
+    <aside class="sidebar">
+      <div class="side-header">
+        <select id="lawSelectQuiz" class="input">
+          <option value="patent" selected>특허법(총칙)</option>
+        </select>
+        <input id="searchQuiz" class="input" placeholder="번호·제목·내용 검색">
+      </div>
+      <div id="tocQuiz" class="toc"></div>
+    </aside>
+
+    <section class="content">
+      <div class="content-header">
+        <div class="row gap">
+          <button id="prevQuiz" class="btn ghost">이전</button>
+          <button id="nextQuiz" class="btn">다음</button>
+        </div>
+        <div class="row gap">
+          <button id="markCorrect" class="btn ghost">맞음</button>
+          <button id="markWrong" class="btn ghost">틀림</button>
+          <span id="stats" class="muted"></span>
+        </div>
+      </div>
+      <article id="viewerQuiz" class="viewer" hidden>
+        <h1 id="titleQuiz">제0조 제목</h1>
+        <div id="bodyQuiz" class="body"></div>
+      </article>
+      <div id="emptyQuiz" class="empty">좌측에서 퀴즈를 선택하세요.</div>
+    </section>
+  </main>
+
+  <script src="./common.js?v=1"></script>
+  <script src="./quiz.js?v=1"></script>
+</body>
+</html>
